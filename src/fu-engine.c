@@ -760,10 +760,17 @@ fu_engine_modify_config(FuEngine *self, const gchar *key, const gchar *value, GE
 			       "DisabledDevices",
 			       "DisabledPlugins",
 			       "EnumerateAllDevices",
+			       "EspLocation",
 			       "HostBkc",
 			       "IdleTimeout",
 			       "IgnorePower",
 			       "OnlyTrusted",
+			       "P2pPolicy",
+			       "ReleaseDedupe",
+			       "ReleasePriority",
+			       "ShowDevicePrivate",
+			       "TrustedReports",
+			       "TrustedUids",
 			       "UpdateMotd",
 			       "UriSchemes",
 			       "VerboseDomains",
@@ -8725,6 +8732,13 @@ fu_engine_constructed(GObject *obj)
 							    XMLB_MINOR_VERSION,
 							    XMLB_MICRO_VERSION);
 		fu_context_add_compile_version(self->ctx, "com.hughsie.libxmlb", version);
+	}
+
+	/* add optional snap version */
+	if (g_getenv("SNAP_REVISION") != NULL) {
+		fu_context_add_compile_version(self->ctx,
+					       "io.snapcraft.fwupd",
+					       g_getenv("SNAP_REVISION"));
 	}
 }
 

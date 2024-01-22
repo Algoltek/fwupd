@@ -34,8 +34,28 @@ jobs:
         name: snap
         path: ${{ steps.snapcraft.outputs.snap }}
 
-  deploy-store:
+  test-snap:
     needs: build-snap
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v4
+      id: download
+      with:
+        name: snap
+    - id: install-snap
+      run: |
+        sudo snap install --dangerous ${{ needs.build-snap.outputs.snap_name }}
+        sudo snap connect fwupd:polkit :polkit
+        sudo fwupd.fwupdtool modify-config DisabledPlugins ""
+    - name: Run fwupdmgr tests
+      run: sudo /snap/fwupd/current/share/installed-tests/fwupd/fwupdmgr.sh
+    - name: Run fwupd tests
+      run: sudo /snap/fwupd/current/share/installed-tests/fwupd/fwupd.sh
+    - name: Run fwupdtool tests
+      run: sudo /snap/fwupd/current/share/installed-tests/fwupd/fwupdtool.sh
+
+  deploy-store:
+    needs: [build-snap, test-snap]
     runs-on: ubuntu-latest
     if: ${{ inputs.deploy }}
     steps:
