@@ -48,6 +48,8 @@
 
 #ifdef HAVE_SYSTEMD
 #include "fu-systemd.h"
+#define SYSTEMD_FWUPD_UNIT	"fwupd.service"
+#define SYSTEMD_SNAP_FWUPD_UNIT "snap.fwupd.fwupd.service"
 #endif
 
 /* custom return codes */
@@ -207,6 +209,16 @@ fu_util_lock(FuUtilPrivate *priv, GError **error)
 #endif
 	return TRUE;
 }
+
+#ifdef HAVE_SYSTEMD
+static const gchar *
+fu_util_get_systemd_unit(void)
+{
+	if (g_getenv("SNAP") != NULL)
+		return SYSTEMD_SNAP_FWUPD_UNIT;
+	return SYSTEMD_FWUPD_UNIT;
+}
+#endif
 
 static gboolean
 fu_util_start_engine(FuUtilPrivate *priv,
@@ -2038,6 +2050,37 @@ fu_util_remote_enable(FuUtilPrivate *priv, gchar **values, GError **error)
 
 	fu_console_print_literal(priv->console, _("Successfully enabled remote"));
 	return TRUE;
+}
+
+static gboolean
+fu_util_toggle_test_devices(FuUtilPrivate *priv, gboolean enable, GError **error)
+{
+	if (!fu_util_start_engine(priv, FU_ENGINE_LOAD_FLAG_NONE, priv->progress, error))
+		return FALSE;
+
+	if (!fu_engine_modify_config(priv->engine, "TestDevices", enable ? "true" : "false", error))
+		return FALSE;
+
+	if (enable) {
+		/* TRANSLATORS: comment explaining result of command */
+		fu_console_print_literal(priv->console, _("Successfully enabled test devices"));
+	} else {
+		/* TRANSLATORS: comment explaining result of command */
+		fu_console_print_literal(priv->console, _("Successfully disabled test devices"));
+	}
+	return TRUE;
+}
+
+static gboolean
+fu_util_disable_test_devices(FuUtilPrivate *priv, gchar **values, GError **error)
+{
+	return fu_util_toggle_test_devices(priv, FALSE, error);
+}
+
+static gboolean
+fu_util_enable_test_devices(FuUtilPrivate *priv, gchar **values, GError **error)
+{
+	return fu_util_toggle_test_devices(priv, TRUE, error);
 }
 
 static gboolean
@@ -4501,6 +4544,18 @@ main(int argc, char *argv[])
 			      /* TRANSLATORS: command description */
 			      _("Disables a given remote"),
 			      fu_util_remote_disable);
+	fu_util_cmd_array_add(cmd_array,
+			      "enable-test-devices",
+			      NULL,
+			      /* TRANSLATORS: command description */
+			      _("Enables virtual testing devices"),
+			      fu_util_enable_test_devices);
+	fu_util_cmd_array_add(cmd_array,
+			      "disable-test-devices",
+			      NULL,
+			      /* TRANSLATORS: command description */
+			      _("Disables virtual testing devices"),
+			      fu_util_disable_test_devices);
 
 	/* do stuff on ctrl+c */
 	priv->cancellable = g_cancellable_new();
