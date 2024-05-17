@@ -488,10 +488,9 @@ fu_algoltek_usb_device_write_firmware(FuDevice *device,
 
 	if (!fu_algoltek_usb_device_ers(self, 0x20, AG_IDENTIFICATION_128K_ADDR, error))
 		return FALSE;
-	if (!fu_algoltek_usb_device_ers(self, 0x20, AG_IDENTIFICATION_256K_ADDR, error))
-		return FALSE;
-	/* 1 sector = 4 kb, 256kb = 64 sector */
-	for (int i = 0; i < 64; i++) {
+	/* 1 sector = 4 kb, 128kb = 32 sectors */
+	/* first 4kb is reserved */
+	for (int i = 1; i < 31; i++) {
 		if (!fu_algoltek_usb_device_ers(self, 0x20, i, error))
 			return FALSE;
 	}
